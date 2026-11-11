@@ -412,7 +412,9 @@ namespace Ink_Canvas.Controls
         public void SetPageButtonVisibility(Visibility v) => PageButtonBorder.Visibility = v;
         public void SetBarOpacity(double opacity)
         {
-            _collapsedOpacity = opacity;
+            // 配置文件可能损坏（FAQ 中亦有提及），NaN / 越界值会让 Opacity 赋值抛异常或渲染异常，
+            // 进而表现为「透明度设置无效」。这里统一钳制到 WPF 允许的 [0, 1] 区间。
+            _collapsedOpacity = double.IsNaN(opacity) ? 1.0 : Math.Max(0.0, Math.Min(1.0, opacity));
             ApplyRootOpacity();
         }
 
@@ -420,8 +422,10 @@ namespace Ink_Canvas.Controls
         // 与浮动栏（ViewboxFloatingBar.Opacity + 子级阴影）保持一致。
         // 若把 Opacity 和 Effect 放在同一个元素上，WPF 会先按半透明轮廓生成阴影，
         // 阴影透过样式半透明的填充显示出来，背景就会发灰发脏。
-        // 也不能作用在 UserControl 自身：AnimationsHelper.ShowWithFadeIn 会在控件上挂
-        // FillBehavior=HoldEnd 的 Opacity 动画，动画结束后会一直压制本地值，透明度调节就失效。
+        // 早期也不能作用在 UserControl 自身：AnimationsHelper.ShowWithFadeIn 曾使用
+        // FillBehavior=HoldEnd 的 Opacity 动画，动画结束后一直压制本地值，导致透明度调节失效
+        // （Issue #768）。ShowWithFadeIn 现已改为 FillBehavior.Stop，但保留 ScaleViewbox 作为
+        // 透明度宿主，以同时规避阴影发灰问题。
         private void ApplyRootOpacity() => ScaleViewbox.Opacity = IsPreviewExpanded ? 1 : _collapsedOpacity;
 
         public void SetBarScale(double scale)

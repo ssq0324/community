@@ -153,10 +153,10 @@ namespace Ink_Canvas.Helpers
 
         public static void ShowWithFadeIn(UIElement element, double duration = 0.15)
         {
-            if (element.Visibility == Visibility.Visible) return;
-
             if (element == null)
                 throw new ArgumentNullException(nameof(element));
+
+            if (element.Visibility == Visibility.Visible) return;
 
             var sb = new Storyboard();
 
@@ -165,7 +165,13 @@ namespace Ink_Canvas.Helpers
             {
                 From = 0.5,
                 To = 1,
-                Duration = TimeSpan.FromSeconds(duration)
+                Duration = TimeSpan.FromSeconds(duration),
+                // 不能让淡入动画在结束后继续占用 Opacity 属性。
+                // DoubleAnimation 默认 FillBehavior.HoldEnd，动画结束后会把目标元素的
+                // Opacity 永久锁定为 To(=1)，此后任何对 Opacity 的本地赋值都会被动画值
+                // 压制而静默失效 —— 这正是 Issue #768「翻页按钮透明度失效」的根因。
+                // 改为 Stop 后，动画结束即释放属性，元素回到自身的本地 Opacity 值。
+                FillBehavior = FillBehavior.Stop
             };
             Storyboard.SetTargetProperty(fadeInAnimation, new PropertyPath(UIElement.OpacityProperty));
 

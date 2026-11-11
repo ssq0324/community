@@ -653,8 +653,13 @@ namespace Ink_Canvas
                 if (IsInPPTPresentationMode)
                 {
                     _pptUIManager.UpdateNavigationPanelsVisibility();
-                    _pptUIManager.UpdateNavigationButtonStyles();
                 }
+
+                // 样式（透明度/缩放/主题/页码显示）必须无条件同步到 4 个翻页控件。
+                // 用户在设置页调整这些值时通常并未处于放映模式；若只在放映模式应用，
+                // 会出现「设置已保存但界面无变化」，直到下次进入放映才生效。
+                // 面板可见性仍由 IsInPPTPresentationMode 控制，避免非放映模式误显示翻页按钮。
+                _pptUIManager.UpdateNavigationButtonStyles();
             }
         }
 
